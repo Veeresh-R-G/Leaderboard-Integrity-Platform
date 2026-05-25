@@ -27,6 +27,38 @@ HEADERS = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
 BASE_URL = "https://www.strava.com/api/v3"
 
 
+def refresh_access_token() -> str:
+    """
+    Exchange refresh token for a new access token.
+    Strava access tokens expire every 6 hours.
+    Call this whenever you get a 401 error.
+    """
+    response = requests.post(
+        "https://www.strava.com/oauth/token",
+        data={
+            "client_id":     os.getenv("STRAVA_CLIENT_ID"),
+            "client_secret": os.getenv("STRAVA_CLIENT_SECRET"),
+            "refresh_token": os.getenv("STRAVA_REFRESH_TOKEN"),
+            "grant_type":    "refresh_token",
+        }
+    )
+
+    if response.status_code != 200:
+        raise Exception(f"Token refresh failed: {response.text}")
+
+    tokens = response.json()
+
+    # Update .env with new tokens
+    new_access = tokens["access_token"]
+    new_refresh = tokens["refresh_token"]
+
+    print(f"✅ Token refreshed")
+    print(f"   New access token:  {new_access[:20]}...")
+    print(f"   Expires at:        {tokens['expires_at']}")
+
+    return new_access
+
+
 def get_athlete_activities(weeks_back: int = 12,
                            sport_type: str = "Run") -> list:
     """Pull activities from Strava API."""
@@ -42,6 +74,13 @@ def get_athlete_activities(weeks_back: int = 12,
             headers=HEADERS,
             params={"after": after_ts, "per_page": 100, "page": page}
         )
+
+        if resp.status_code == 401:
+            print("  Access token expired — refreshing...")
+            access_token = refresh_access_token()
+            headers = {"Authorization": f"Bearer {access_token}"}
+            continue
+
         if resp.status_code != 200:
             print(f"  API error: {resp.status_code}")
             break
@@ -126,7 +165,8 @@ def store_activity(activity: dict) -> int:
 
 def store_gps_streams(activity_id: int,
                       streams: dict,
-                      start_time: str) -> int:
+                      start_time: str,
+                      sport_type: str = "Run") -> int:
     """Insert GPS streams into TimescaleDB hypertable."""
     if not streams or "time" not in streams:
         return 0
@@ -144,6 +184,12 @@ def store_gps_streams(activity_id: int,
     for i, t in enumerate(times):
         lat = latlng[i][0] if i < len(latlng) else None
         lon = latlng[i][1] if i < len(latlng) else None
+        raw_cadence = cadence[i] if i < len(cadence) else None
+        if raw_cadence is not None and sport_type.lower() in ("run", "trailrun"):
+            adjusted_cadence = raw_cadence * 2
+        else:
+            adjusted_cadence = raw_cadence
+
         records.append({
             "time":        start_dt + timedelta(seconds=t),
             "activity_id": activity_id,
@@ -152,7 +198,7 @@ def store_gps_streams(activity_id: int,
             "altitude_m":  altitude[i] if i < len(altitude) else None,
             "speed_ms":    speed[i] if i < len(speed) else None,
             "hr_bpm":      hr[i] if i < len(hr) else None,
-            "cadence_rpm": cadence[i] if i < len(cadence) else None,
+            "cadence_rpm": adjusted_cadence,
             "grade_pct":   grade[i] if i < len(grade) else None,
         })
 
@@ -176,7 +222,8 @@ def ingest_strava_history(weeks_back: int = 12):
         activity_id = store_activity(activity)
         streams = get_activity_streams(activity["id"])
         n_points = store_gps_streams(
-            activity_id, streams, activity["start_date"])
+            activity_id, streams, activity["start_date"],
+            sport_type=activity.get("sport_type", "Run"))
 
         total_points += n_points
         time.sleep(0.5)   # rate limit

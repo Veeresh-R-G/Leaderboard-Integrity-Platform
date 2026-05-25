@@ -139,3 +139,8 @@ LEFT JOIN LATERAL (
     WHERE activity_id = a.activity_id
     ORDER BY scored_at DESC LIMIT 1
 ) s ON true;
+
+-- Add after the anomaly_scores table definition in init.sql
+ALTER TABLE anomaly_scores 
+ADD CONSTRAINT uq_activity_model 
+UNIQUE (activity_id, model_name);

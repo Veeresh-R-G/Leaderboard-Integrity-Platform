@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
-from inference import AnomalyScorer
+from api.inference import AnomalyScorer
 
 load_dotenv()
 
