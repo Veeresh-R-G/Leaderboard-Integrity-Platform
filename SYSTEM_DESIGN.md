@@ -58,8 +58,8 @@ Strava's pre-ML rules-based system removed 6.5M activities in December 2024. The
 └─────────┬────────┘   └──────────┬───────┘   └─────────┬────────┘
           └────────────────────────┼──────────────────────┘
                                    │
-                        ┌──────────▼──────────┐
-                        │  Kafka Topic:       │
+                        ┌──────────▼──────────┐    
+                        │  Kafka Topic:       │   # This is Future State Architecture
                         │  activity.features  │
                         └──────────┬──────────┘
                                    │
@@ -77,10 +77,10 @@ Strava's pre-ML rules-based system removed 6.5M activities in December 2024. The
                ┌───────────────────┼──────────────────┐
                │                   │                  │
     ┌──────────▼──────┐  ┌─────────▼──────┐  ┌───────▼──────────┐
-    │   TimescaleDB   │  │     Redis       │  │  Alert Service   │
-    │  (audit trail)  │  │  (score cache)  │  │ (flag + notify)  │
-    │                 │  │  TTL: 1 hour    │  │                  │
-    │  anomaly_scores │  │  sub-ms lookup  │  │  Leaderboard API │
+    │   TimescaleDB   │  │     Redis      │  │  Alert Service   │
+    │  (audit trail)  │  │  (score cache) │  │ (flag + notify)  │
+    │                 │  │  TTL: 1 hour   │  │                  │
+    │  anomaly_scores │  │  sub-ms lookup │  │  Leaderboard API │
     └─────────────────┘  └────────────────┘  └──────────────────┘
 ```
 
