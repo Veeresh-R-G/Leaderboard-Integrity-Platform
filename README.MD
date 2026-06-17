@@ -1,5 +1,7 @@
 # 🏆 Strava Leaderboard Integrity System
 
+[Kaggle Notebook](https://www.kaggle.com/code/veeresh1104/tnc-vs-ts2ecv-comparison)
+
 > End-to-end production-grade anomaly detection for GPS sports data.
 > Self-supervised contrastive learning detects cheating on Strava leaderboards
 > without requiring any labelled anomaly data.
@@ -15,7 +17,7 @@ Strava removed **4.45 million anomalous run activities** in May 2025 and **3.9 m
 Their current system uses supervised ML — which requires labelled anomaly examples and cannot detect anomaly types it has never seen.
 
 **This project builds a self-supervised alternative** that learns only from normal activities and generalises to unseen anomaly types automatically.
-[Kaggle Notebook](https://www.kaggle.com/code/veeresh1104/tnc-vs-ts2ecv-comparison)
+
 ---
 
 ## Architecture
